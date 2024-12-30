@@ -47,7 +47,8 @@ class LinkedInBot:
         while True:
             try:
                 print(f"Iniciando processamento da página {page}...")
-                connect_buttons = self.driver.find_elements(By.XPATH, '//button[contains(@aria-label, "Convidar") or .//span[text()="Conectar"]]')
+                # Seleciona todos os botões que contêm o texto "Conectar".
+                connect_buttons = self.driver.find_elements(By.XPATH, '//button[contains(@aria-label, "Convidar") or contains(.//span, "Conectar")]')
                 
                 if not connect_buttons:
                     print("Nenhum botão 'Conectar' encontrado nesta página. Finalizando...")
@@ -55,12 +56,21 @@ class LinkedInBot:
 
                 for idx, button in enumerate(connect_buttons):
                     try:
-                        self.driver.execute_script("arguments[0].scrollIntoView(true);", button)
-                        ActionChains(self.driver).move_to_element(button).perform()
-                        time.sleep(1)
+                        # Role até o botão com precisão
+                        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", button)
+                        time.sleep(1)  # Espera após o scroll
+
+                        # Verifica se o botão é clicável
+                        WebDriverWait(self.driver, 5).until(
+                            EC.element_to_be_clickable((By.XPATH, '//button[contains(@aria-label, "Convidar") or contains(.//span, "Conectar")]'))
+                        )
+
+                        # Tenta clicar
                         button.click()
                         time.sleep(2)
+
                         try:
+                            # Tenta clicar no botão "Enviar sem nota", caso um modal seja exibido.
                             send_button = WebDriverWait(self.driver, 3).until(
                                 EC.element_to_be_clickable((By.XPATH, '//button[@aria-label="Enviar sem nota"]'))
                             )
@@ -69,12 +79,13 @@ class LinkedInBot:
                         except Exception:
                             print(f"Solicitação enviada (sem modal) - Usuário {idx + 1} na página {page}.")
                         
-                        time.sleep(1)  
+                        time.sleep(1)  # Espera entre as interações
 
                     except Exception as err:
                         print(f"Erro ao processar o usuário {idx + 1} na página {page}: {err}")
 
                 try:
+                    # Tenta navegar para a próxima página
                     page += 1
                     next_page_button = WebDriverWait(self.driver, 5).until(
                         EC.element_to_be_clickable((By.XPATH, f'//button[@aria-label="Página {page}"]'))
